@@ -311,8 +311,23 @@ let selectedElement = null;
 let isEditMode = false;
 
 // Initialize first task
-window.onload = function() {
-    // Check if we have saved data
+// Initialize first task
+window.onload = async function() {
+    // 1. Najpierw spróbuj załadować dane z chmury
+    try {
+        const OVH_URL = 'https://storage.waw.cloud.ovh.net/v1/AUTH_024f82ed62da4186825a5b526cd1a61e/FishFounder/task-editor-backup-2025-04-29.json';
+        const response = await fetch(OVH_URL);
+        
+        if (response.ok) {
+            const cloudData = await response.json();
+            localStorage.setItem('taskEditorData', JSON.stringify(cloudData));
+            console.log('Dane załadowane z OVH Cloud');
+        }
+    } catch (error) {
+        console.log('Używam lokalnych danych. Błąd ładowania z chmury:', error);
+    }
+
+    // 2. Standardowe ładowanie danych
     const savedData = localStorage.getItem('taskEditorData');
     
     if (savedData) {
@@ -321,6 +336,7 @@ window.onload = function() {
         addNewTask();
     }
     
+    // 3. Pozostałe istniejące funkcjonalności
     // Add delete key functionality
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Delete' && selectedElement) {
