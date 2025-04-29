@@ -314,57 +314,45 @@ let isEditMode = false;
 // Initialize first task
 // Initialize first task
 window.onload = async function() {
-    // 1. Najpierw spróbuj załadować dane z chmury
+    // 1. Spróbuj pobrać przez proxy
     try {
         const OVH_URL = 'https://storage.waw.cloud.ovh.net/v1/AUTH_024f82ed62da4186825a5b526cd1a61e/FishFounder/task-editor-backup-2025-04-29.json';
-        console.log('Próba pobrania danych z:', OVH_URL);
+        const PROXY_URL = `https://api.allorigins.win/get?url=${encodeURIComponent(OVH_URL)}`;
         
-        const response = await fetch(OVH_URL, {
-            mode: 'cors',
-            headers: {
-                'Accept': 'application/json'
-            }
-        });
+        const response = await fetch(PROXY_URL);
+        if (!response.ok) throw new Error('Proxy error');
         
-        console.log('Odpowiedź serwera:', response);
+        const { contents } = await response.json();
+        const cloudData = JSON.parse(contents);
         
-        if (response.ok) {
-            const cloudData = await response.json();
-            console.log('Dane z chmury:', cloudData);
+        if (cloudData && cloudData.tasks) {
             localStorage.setItem('taskEditorData', JSON.stringify(cloudData));
-            console.log('Dane zapisane w localStorage');
-        } else {
-            console.error('Błąd odpowiedzi:', response.status, response.statusText);
-            throw new Error(`HTTP error! status: ${response.status}`);
+            console.log('Dane załadowane przez proxy');
         }
     } catch (error) {
-        console.error('Całkowity błąd ładowania z chmury:', error);
-        // Dodatkowa diagnostyka dla błędów CORS
-        if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-            console.warn('Problem prawdopodobnie dotyczy CORS. Sprawdź konfigurację serwera.');
-        }
+        console.log('Używam lokalnych danych:', error);
     }
 
-    // 2. Standardowe ładowanie danych
-    console.log('Sprawdzam localStorage...');
+    // 2. Standardowe ładowanie
     const savedData = localStorage.getItem('taskEditorData');
-    
     if (savedData) {
-        console.log('Znaleziono dane w localStorage');
-        try {
-            loadFromLocalStorage();
-        } catch (e) {
-            console.error('Błąd ładowania z localStorage:', e);
-            addNewTask();
-        }
+        loadFromLocalStorage();
     } else {
-        console.log('Brak danych w localStorage, tworzę nowy task');
         addNewTask();
     }
-    
-    // ... reszta istniejącego kodu ...
+
+    // ... reszta Twojego kodu ...
 };
 
+
+
+
+
+
+
+
+
+	
 function selectElement(element) {
     deselectAll();
     selectedElement = element;
