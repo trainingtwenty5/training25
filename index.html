@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Advanced Image & Text Editor</title>
+<style>
+ body {
+    font-family: 'Arial', sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: white;
+    height: 100vh;
+    overflow: hidden;
+}
+
+#main-container {
+    display: flex;
+    height: 100vh;
+    width: 100%;
+    overflow: hidden;
+}
+
+#editor-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+    height: 100vh;
+}
+
+#editor {
+    background: #ffffff;
+    padding: 20px;
+    width: 212mm;
+    margin: 20px auto;
+    box-sizing: border-box;
+    font-family: 'Verdana', sans-serif;
+    font-size: 16px;
+    color: #000;
+    position: relative;
+}
+
+#sidebar {
+    width: 250px;
+    padding: 20px;
+    background: #f1f1f1;
+    box-sizing: border-box;
+    height: 100vh;
+    overflow-y: auto;
+}
+
+.draggable, .text-block, .img-element, .img-container {
+    position: absolute;
+    cursor: move;
+    user-select: none;
+    padding: 8px 12px;
+    font-size: 14px;
+    font-family: 'Verdana', sans-serif;
+    border-radius: 8px;
+    box-sizing: border-box;
+}
+
+.draggable {
+    background: #ff0000;
+    color: #000000;
+    
+    min-width: 30px;
+    min-height: 30px;
+}
+
+.text-block {
+    background: white;
+    color: #000;
+    
+    min-width: 80px;
+    min-height: 40px;
+    text-align: justify; /* Dodane wyjustowanie tekstu */
+}
+
+.img-element {
+    border: 1px dashed #888;
+    background: transparent;
+    max-width: 800px;
+    max-height: 800px;
+    resize: none;
+}
+
+.img-container:hover .img-element {
+    outline: 2px dashed #007BFF;
+}
+
+.img-container {
+    border: none;
+    background: transparent;
+   
+}
+
+.task-btn {
+    background-color: #28a745;
+    color: white;
+    border-radius: 8px;
+    padding: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    margin-top: 10px;
+    width: 100%;
+    border: none;
+}
+
+.task-btn:hover {
+    background-color: #218838;
+}
+
+.task-management {
+    margin-top: 20px;
+    border-top: 1px solid #ccc;
+    padding-top: 20px;
+}
+
+.task-list {
+    max-height: 200px;
+    overflow-y: auto;
+    margin-bottom: 10px;
+    border: 1px solid #ddd;
+    padding: 5px;
+    background: white;
+}
+
+.task-item {
+    padding: 5px;
+    margin: 3px 0;
+    background: #eee;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.task-item:hover {
+    background: #ddd;
+}
+
+.task-item.active {
+    background: #007BFF;
+    color: white;
+}
+
+.tab-container {
+    display: flex;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+.tab {
+    cursor: pointer;
+    padding: 8px 12px;
+    background: #ddd;
+    margin: 0 5px 5px 0;
+    font-size: 14px;
+    border-radius: 4px;
+}
+
+.tab:hover {
+    background: #ccc;
+}
+
+.active-tab {
+    background: #007BFF;
+    color: white;
+}
+
+input {
+    width: calc(100% - 20px);
+    padding: 8px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.task-page {
+    position: relative;
+    width: 210mm;
+    min-height: 297mm;
+    margin-bottom: 20px;
+    background: white;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+    page-break-after: always;
+    background-image: linear-gradient(to bottom, transparent 296mm, rgba(0,0,0,0.1) 296mm, rgba(0,0,0,0.1) 297mm, transparent 297mm);
+    background-size: 100% 297mm;
+    background-repeat: repeat-y;
+}
+
+.page-indicator {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    padding: 5px;
+    background: rgba(0,0,0,0.1);
+    font-size: 12px;
+}
+
+.task-pages-container {
+    display: none;
+}
+
+.task-pages-container.active {
+    display: block;
+}
+
+.page-controls {
+    margin-top: 10px;
+    display: flex;
+    gap: 5px;
+}
+
+.page-btn {
+    padding: 5px 10px;
+    background: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.page-btn:hover {
+    background: #5a6268;
+}
+
+.selected {
+    outline: 2px solid #007BFF;
+}
+
+/* PDF-specific styles */
+.pdf-page {
+    width: 210mm !important;
+    min-height: 297mm !important;
+    margin: 0 !important;
+    padding: 20px !important;
+    box-sizing: border-box !important;
+    position: relative !important;
+    background: white !important;
+    page-break-after: always !important;
+}
+
+.pdf-img {
+    max-width: 100% !important;
+    height: auto !important;
+}
+
+@media print {
+    body, .task-page {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    
+    /* Hide all elements except the active task */
+    .task-pages-container:not(.active) {
+        display: none !important;
+    }
+}
+</style>
+</head>
+<body>
+
+<div id="main-container">
+    <div id="sidebar">
+        <h2>Task Controls</h2>
+        <button class="task-btn" onclick="addNumber()">Add Number</button>
+        <input type="number" id="customNumber" placeholder="Custom Number" min="1" max="999">
+        <button class="task-btn" onclick="addTextField()">Add Text Field</button>
+        <input type="text" id="customText" placeholder="Custom Text">
+        
+        <div class="task-management">
+            <h3>Task Management</h3>
+            <div class="task-list" id="taskList"></div>
+            <button class="task-btn" onclick="addNewTask()">Add New Task</button>
+            <button class="task-btn" onclick="duplicateCurrentTask()">Duplicate Task</button>
+            <button class="task-btn" onclick="removeCurrentTask()">Remove Task</button>
+			 <!-- Nowe przyciski backup/restore -->
+        <button class="task-btn backup-btn" onclick="exportData()">Download Backup</button>
+        <button class="task-btn restore-btn" onclick="document.getElementById('fileInput').click()">Restore Backup</button>
+        <input type="file" id="fileInput" accept=".json" onchange="importData(this)">
+            <input type="password" id="taskPassword" placeholder="Password: xxx">
+        </div>
+        
+        <div class="page-management" id="pageManagement" style="display: none;">
+            <h3>Page Management</h3>
+            <div class="page-controls">
+                <button class="page-btn" onclick="addNewPage()">Add Page</button>
+                <button class="page-btn" onclick="removeCurrentPage()">Remove Page</button>
+            </div>
+            <div class="page-list" id="pageList"></div>
+        </div>
+        
+        <button class="task-btn" onclick="downloadPDF()">Download as PDF</button>
+        <button class="task-btn" onclick="printActiveTask()">Print Active Task</button>
+    </div>
+
+    <div id="editor-container">
+        <div id="editor"></div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<script>
+let numberCounter = 1;
+let tasks = []; // Each task contains multiple pages
+let activeTaskIndex = 0;
+let activePageIndex = 0;
+let selectedElement = null;
+let isEditMode = false;
+
+// Initialize first task
+window.onload = function() {
+    // Check if we have saved data
+    const savedData = localStorage.getItem('taskEditorData');
+    
+    if (savedData) {
+        loadFromLocalStorage();
+    } else {
+        addNewTask();
+    }
+    
+    // Add delete key functionality
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Delete' && selectedElement) {
+            deleteSelectedElement();
+        }
+        
+        // Add 'c' key functionality to add number
+        if (e.key === 'c' && !isEditMode) {
+            e.preventDefault();
+            addNumber();
+        }
+        
+        // Add 't' key functionality to add text
+        if (e.key === 't' && !isEditMode) {
+            e.preventDefault();
+            addTextField();
+        }
+    });
+    
+    // Add click to select functionality
+    document.addEventListener('click', function(e) {
+        // Check if we clicked on an editable element
+        if (e.target.classList.contains('draggable') || 
+            e.target.classList.contains('text-block') || 
+            e.target.classList.contains('img-container') ||
+            e.target.classList.contains('img-element')) {
+            
+            // Find the top-level container (for images)
+            let element = e.target;
+            if (element.classList.contains('img-element')) {
+                element = element.parentElement;
+            }
+            
+            selectElement(element);
+        } else if (!e.target.closest('.draggable, .text-block, .img-container')) {
+            // Clicked outside any element - deselect
+            deselectAll();
+        }
+    });
+    
+    // Track edit mode
+    document.addEventListener('focusin', function(e) {
+        if (e.target.classList.contains('draggable') || 
+            e.target.classList.contains('text-block')) {
+            isEditMode = true;
+        }
+    });
+    
+    document.addEventListener('focusout', function(e) {
+        if (e.target.classList.contains('draggable') || 
+            e.target.classList.contains('text-block')) {
+            isEditMode = false;
+            saveToLocalStorage();
+        }
+    });
+};
+
+function selectElement(element) {
+    deselectAll();
+    selectedElement = element;
+    element.classList.add('selected');
+}
+
+function deselectAll() {
+    if (selectedElement) {
+        selectedElement.classList.remove('selected');
+    }
+    selectedElement = null;
+}
+
+function deleteSelectedElement() {
+    if (selectedElement) {
+        selectedElement.remove();
+        selectedElement = null;
+        saveToLocalStorage();
+    }
+}
+
+// Save to localStorage
+function saveToLocalStorage() {
+    const tasksData = tasks.map(task => {
+        return task.map(page => {
+            const elements = Array.from(page.querySelectorAll('.draggable, .text-block, .img-container'));
+            return elements.map(el => {
+                const data = {
+                    type: el.classList.contains('draggable') ? 'number' : 
+                          el.classList.contains('text-block') ? 'text' : 'image',
+                    content: el.classList.contains('img-container') ? el.querySelector('img').src : el.innerText,
+                    style: {
+                        top: el.style.top,
+                        left: el.style.left,
+                        fontSize: el.style.fontSize,
+                        color: el.style.color,
+                        backgroundColor: el.style.backgroundColor,
+                        textAlign: el.style.textAlign // Dodane wyjustowanie tekstu
+                    }
+                };
+                
+                // Special handling for images
+                if (data.type === 'image') {
+                    const img = el.querySelector('img');
+                    data.style.width = img.style.width;
+                    data.style.height = img.style.height;
+                }
+                
+                return data;
+            });
+        });
+    });
+    
+    localStorage.setItem('taskEditorData', JSON.stringify({
+        tasks: tasksData,
+        activeTaskIndex: activeTaskIndex,
+        activePageIndex: activePageIndex,
+        numberCounter: numberCounter
+    }));
+}
+
+// Load from localStorage
+function loadFromLocalStorage() {
+    const savedData = localStorage.getItem('taskEditorData');
+    if (!savedData) return;
+    
+    const data = JSON.parse(savedData);
+    
+    // Clear existing tasks
+    tasks = [];
+    const editor = document.getElementById('editor');
+    editor.innerHTML = '';
+    
+    // Recreate tasks
+    data.tasks.forEach((taskData, taskIndex) => {
+        const newTask = [];
+        
+        taskData.forEach((pageData, pageIndex) => {
+            const newPage = createNewPage(taskIndex, pageIndex);
+            newTask.push(newPage);
+            
+            pageData.forEach(elementData => {
+                let element;
+                if (elementData.type === 'number') {
+                    element = document.createElement('div');
+                    element.className = 'draggable';
+                    element.contentEditable = true;
+                    element.innerText = elementData.content;
+                } else if (elementData.type === 'text') {
+                    element = document.createElement('div');
+                    element.className = 'text-block';
+                    element.contentEditable = true;
+                    element.innerText = elementData.content;
+                    // Przywróć wyjustowanie tekstu
+                    if (elementData.style.textAlign) {
+                        element.style.textAlign = elementData.style.textAlign;
+                    } else {
+                        element.style.textAlign = 'justify'; // Domyślnie wyjustowany
+                    }
+                } else if (elementData.type === 'image') {
+                    const container = document.createElement('div');
+                    container.className = 'img-container';
+                    const img = document.createElement('img');
+                    img.src = elementData.content;
+                    img.className = 'img-element';
+                    
+                    // Apply image dimensions if they exist
+                    if (elementData.style.width) img.style.width = elementData.style.width;
+                    if (elementData.style.height) img.style.height = elementData.style.height;
+                    
+                    container.appendChild(img);
+                    element = container;
+                }
+                
+                // Apply styles
+                if (elementData.style) {
+                    element.style.top = elementData.style.top || '100px';
+                    element.style.left = elementData.style.left || '100px';
+                    element.style.fontSize = elementData.style.fontSize || '';
+                    element.style.color = elementData.style.color || '';
+                    element.style.backgroundColor = elementData.style.backgroundColor || '';
+                }
+                
+                makeDraggable(element);
+                newPage.appendChild(element);
+            });
+        });
+        
+        tasks.push(newTask);
+    });
+    
+    // Restore counters and active page
+    numberCounter = data.numberCounter || 1;
+    activeTaskIndex = data.activeTaskIndex || 0;
+    activePageIndex = data.activePageIndex || 0;
+    switchTask(activeTaskIndex);
+    updatePageManagement();
+}
+
+function createNewPage(taskIndex, pageIndex) {
+    const newPage = document.createElement('div');
+    newPage.className = 'task-page';
+    
+    // Add page indicator
+    const indicator = document.createElement('div');
+    indicator.className = 'page-indicator';
+    indicator.textContent = `Task ${taskIndex + 1} - Page ${pageIndex + 1}`;
+    newPage.appendChild(indicator);
+    
+    // Add to editor
+    const container = document.createElement('div');
+    container.className = 'task-pages-container';
+    if (taskIndex === activeTaskIndex && pageIndex === activePageIndex) {
+        container.classList.add('active');
+    }
+    container.appendChild(newPage);
+    document.getElementById('editor').appendChild(container);
+    
+    return newPage;
+}
+
+// Image paste functionality
+document.addEventListener('paste', function (event) {
+    if (!tasks[activeTaskIndex] || !tasks[activeTaskIndex][activePageIndex]) return;
+    
+    const items = (event.clipboardData || event.originalEvent.clipboardData).items;
+    for (const item of items) {
+        if (item.type.indexOf('image') !== -1) {
+            const blob = item.getAsFile();
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                const img = document.createElement('img');
+                img.src = event.target.result;
+                img.className = 'img-element';
+                img.style.maxWidth = '800px';
+                img.style.maxHeight = '800px';
+                
+                const container = document.createElement('div');
+                container.className = 'img-container';
+                container.style.position = 'absolute';
+                container.style.top = '100px';
+                container.style.left = '100px';
+                container.appendChild(img);
+                
+                makeDraggable(container);
+                tasks[activeTaskIndex][activePageIndex].appendChild(container);
+                saveToLocalStorage();
+            };
+            reader.readAsDataURL(blob);
+            break;
+        }
+    }
+});
+
+// Improved dragging function with image resizing
+function makeDraggable(elmnt) {
+    let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+    let isDragging = false;
+    let isResizing = false;
+
+    // Add resize handle for images
+    if (elmnt.classList.contains('img-container')) {
+        const img = elmnt.querySelector('img');
+        if (img) {
+            // Create resize handle
+            const resizeHandle = document.createElement('div');
+            resizeHandle.style.position = 'absolute';
+            resizeHandle.style.width = '10px';
+            resizeHandle.style.height = '10px';
+            resizeHandle.style.right = '0';
+            resizeHandle.style.bottom = '0';
+            resizeHandle.style.backgroundColor = '#007BFF';
+            resizeHandle.style.cursor = 'nwse-resize';
+            resizeHandle.style.zIndex = '1001';
+            elmnt.appendChild(resizeHandle);
+
+            // Resize functionality
+            resizeHandle.onmousedown = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                isResizing = true;
+                const startX = e.clientX;
+                const startY = e.clientY;
+                const startWidth = parseInt(document.defaultView.getComputedStyle(img).width, 10);
+                const startHeight = parseInt(document.defaultView.getComputedStyle(img).height, 10);
+                const ratio = startWidth / startHeight;
+
+                document.onmousemove = function(e) {
+                    if (!isResizing) return;
+                    
+                    const width = startWidth + (e.clientX - startX);
+                    const height = width / ratio; // Maintain aspect ratio
+                    
+                    // Minimum size constraint
+                    const minSize = 20;
+                    if (width > minSize && height > minSize) {
+                        img.style.width = width + 'px';
+                        img.style.height = height + 'px';
+                    }
+                };
+
+                document.onmouseup = function() {
+                    isResizing = false;
+                    document.onmousemove = null;
+                    document.onmouseup = null;
+                    saveToLocalStorage();
+                };
+            };
+        }
+    }
+
+    elmnt.onmousedown = function(e) {
+        // Don't start dragging if we're resizing or clicking on resize handle
+        if (e.button !== 0 || isResizing || e.target === elmnt.querySelector('div[style*="nwse-resize"]')) {
+            return;
+        }
+        
+        e.preventDefault();
+        e.stopPropagation();
+        
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        
+        document.onmouseup = closeDragElement;
+        document.onmousemove = elementDrag;
+        
+        elmnt.style.zIndex = 1000;
+    };
+
+    function elementDrag(e) {
+        if (isResizing) return;
+        
+        e.preventDefault();
+        e.stopPropagation();
+        
+        pos1 = pos3 - e.clientX;
+        pos2 = pos4 - e.clientY;
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        
+        elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+        elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+        
+        isDragging = true;
+    }
+
+    function closeDragElement() {
+        document.onmouseup = null;
+        document.onmousemove = null;
+        
+        if (isDragging) {
+            setTimeout(() => {
+                elmnt.style.zIndex = '';
+            }, 100);
+            saveToLocalStorage();
+        }
+        
+        isDragging = false;
+    }
+}
+
+// Add number element
+function addNumber() {
+    if (!tasks[activeTaskIndex] || !tasks[activeTaskIndex][activePageIndex]) return;
+    
+    const div = document.createElement('div');
+    div.className = 'draggable';
+    const custom = document.getElementById('customNumber').value;
+    div.contentEditable = true;
+    div.innerText = custom ? custom : numberCounter++;
+    
+    div.style.top = '100px';
+    div.style.left = '100px';
+    makeDraggable(div);
+    tasks[activeTaskIndex][activePageIndex].appendChild(div);
+    saveToLocalStorage();
+}
+
+function addTextField() {
+    if (!tasks[activeTaskIndex] || !tasks[activeTaskIndex][activePageIndex]) return;
+    
+    const div = document.createElement('div');
+    div.className = 'text-block';
+    const customText = document.getElementById('customText').value;
+    div.contentEditable = true;
+    div.innerText = customText ? customText : 'Click to edit text...';
+    div.style.textAlign = 'justify'; // Domyślnie wyjustowany tekst
+    
+    div.style.top = '150px';
+    div.style.left = '100px';
+    makeDraggable(div);
+    tasks[activeTaskIndex][activePageIndex].appendChild(div);
+    saveToLocalStorage();
+}
+
+// Add new task
+function addNewTask() {
+    const newTask = [];
+    const newPage = createNewPage(tasks.length, 0);
+    newTask.push(newPage);
+    tasks.push(newTask);
+    
+    updateTaskList();
+    switchTask(tasks.length - 1);
+    saveToLocalStorage();
+}
+
+// Add new page to current task
+function addNewPage() {
+    if (!tasks[activeTaskIndex]) return;
+    
+    const newPage = createNewPage(activeTaskIndex, tasks[activeTaskIndex].length);
+    tasks[activeTaskIndex].push(newPage);
+    
+    updatePageList();
+    switchPage(tasks[activeTaskIndex].length - 1);
+    saveToLocalStorage();
+}
+
+// Remove current page
+function removeCurrentPage() {
+    if (!tasks[activeTaskIndex] || tasks[activeTaskIndex].length <= 1) {
+        alert('Cannot remove the last page of a task.');
+        return;
+    }
+    
+    const removedPage = tasks[activeTaskIndex].splice(activePageIndex, 1)[0];
+    removedPage.parentElement.remove();
+    
+    if (activePageIndex >= tasks[activeTaskIndex].length) {
+        activePageIndex = tasks[activeTaskIndex].length - 1;
+    }
+    
+    switchPage(activePageIndex);
+    saveToLocalStorage();
+}
+
+// Update task list display
+function updateTaskList() {
+    const taskList = document.getElementById('taskList');
+    taskList.innerHTML = '';
+    
+    tasks.forEach((task, index) => {
+        const taskItem = document.createElement('div');
+        taskItem.className = 'task-item' + (index === activeTaskIndex ? ' active' : '');
+        taskItem.innerText = 'Task ' + (index + 1) + ` (${task.length} pages)`;
+        taskItem.onclick = function() { switchTask(index); };
+        taskList.appendChild(taskItem);
+    });
+}
+
+// Update page list display
+function updatePageList() {
+    const pageList = document.getElementById('pageList');
+    pageList.innerHTML = '';
+    
+    if (!tasks[activeTaskIndex]) return;
+    
+    tasks[activeTaskIndex].forEach((page, index) => {
+        const pageItem = document.createElement('div');
+        pageItem.className = 'task-item' + (index === activePageIndex ? ' active' : '');
+        pageItem.innerText = 'Page ' + (index + 1);
+        pageItem.onclick = function() { switchPage(index); };
+        pageList.appendChild(pageItem);
+    });
+}
+
+// Switch between tasks
+function switchTask(index) {
+    if (index < 0 || index >= tasks.length) return;
+    
+    // Hide all pages
+    document.querySelectorAll('.task-pages-container').forEach(container => {
+        container.style.display = 'none';
+    });
+    
+    // Show pages for selected task
+    tasks[index].forEach((page, i) => {
+        page.parentElement.style.display = i === activePageIndex ? 'block' : 'none';
+    });
+    
+    activeTaskIndex = index;
+    activePageIndex = 0; // Reset to first page when switching tasks
+    
+    updateTaskList();
+    updatePageManagement();
+    saveToLocalStorage();
+}
+
+// Switch between pages
+function switchPage(index) {
+    if (!tasks[activeTaskIndex] || index < 0 || index >= tasks[activeTaskIndex].length) return;
+    
+    // Hide all pages of current task
+    tasks[activeTaskIndex].forEach(page => {
+        page.parentElement.style.display = 'none';
+    });
+    
+    // Show selected page
+    tasks[activeTaskIndex][index].parentElement.style.display = 'block';
+    
+    activePageIndex = index;
+    updatePageList();
+    saveToLocalStorage();
+}
+
+// Update page management visibility
+function updatePageManagement() {
+    const pageManagement = document.getElementById('pageManagement');
+    if (tasks.length > 0) {
+        pageManagement.style.display = 'block';
+        updatePageList();
+    } else {
+        pageManagement.style.display = 'none';
+    }
+}
+
+// Remove current task
+function removeCurrentTask() {
+    const password = document.getElementById('taskPassword').value;
+    const correctPassword = '12345';
+    
+    if (password === correctPassword) {
+        if (tasks.length > 1) {
+            const removedTask = tasks.splice(activeTaskIndex, 1)[0];
+            removedTask.forEach(page => page.parentElement.remove());
+            
+            if (activeTaskIndex >= tasks.length) {
+                activeTaskIndex = tasks.length - 1;
+            }
+            
+            switchTask(activeTaskIndex);
+            alert('Task removed successfully.');
+            saveToLocalStorage();
+        } else {
+            alert('Cannot remove the last task.');
+        }
+    } else {
+        alert('Incorrect password. Use "12345"');
+    }
+}
+
+// Duplicate current task
+function duplicateCurrentTask() {
+    if (!tasks[activeTaskIndex]) return;
+    
+    const newTask = [];
+    
+    // Clone all pages from current task
+    tasks[activeTaskIndex].forEach(page => {
+        const newPage = createNewPage(tasks.length, newTask.length);
+        newTask.push(newPage);
+        
+        // Clone all elements from current page (except the page indicator)
+        const elements = page.querySelectorAll('.draggable, .text-block, .img-container');
+        elements.forEach(el => {
+            const clone = el.cloneNode(true);
+            makeDraggable(clone);
+            newPage.appendChild(clone);
+        });
+    });
+    
+    tasks.push(newTask);
+    updateTaskList();
+    switchTask(tasks.length - 1);
+    saveToLocalStorage();
+}
+
+// Download as PDF - FIXED VERSION
+function downloadPDF() {
+    // Create a container for all pages from active task only
+    const allPagesContainer = document.createElement('div');
+    allPagesContainer.style.width = '200mm';
+    allPagesContainer.style.height = 'auto';
+    
+    // Count of pages with actual content
+    let pagesWithContent = 0;
+    
+    // Clone and style all pages from active task only
+    tasks[activeTaskIndex].forEach(page => {
+        // Check if page has any visible content
+        const elements = page.querySelectorAll('.draggable, .text-block, .img-container');
+        let hasVisibleContent = false;
+        
+        elements.forEach(el => {
+            // Check if element is visible (not hidden or empty)
+            const style = window.getComputedStyle(el);
+            if (style.display !== 'none' && 
+                style.visibility !== 'hidden' && 
+                style.opacity !== '0' &&
+                (el.innerText.trim() !== '' || el.querySelector('img'))) {
+                hasVisibleContent = true;
+            }
+        });
+        
+        if (!hasVisibleContent) return; // Skip empty pages
+        
+        pagesWithContent++;
+        const pageClone = page.cloneNode(true);
+        pageClone.className = 'pdf-page';
+        
+        // Remove page indicators from PDF
+        const indicators = pageClone.querySelectorAll('.page-indicator');
+        indicators.forEach(ind => ind.remove());
+        
+        // Ensure all elements are visible in PDF
+        elements.forEach(el => {
+            el.style.visibility = 'visible';
+            el.style.opacity = '1';
+            
+            // Handle images specifically
+            if (el.classList.contains('img-container')) {
+                const img = el.querySelector('img');
+                if (img) {
+                    img.style.visibility = 'visible';
+                    img.style.opacity = '1';
+                    if (!img.style.width || !img.style.height) {
+                        img.style.width = 'auto';
+                        img.style.maxWidth = '100%';
+                    }
+                }
+            }
+        });
+        
+        allPagesContainer.appendChild(pageClone);
+    });
+    
+    // Check if we have any pages to export
+    if (pagesWithContent === 0) {
+        alert('No visible content to export! Please add some content first.');
+        return;
+    }
+    
+    // Create temporary container
+    const tempContainer = document.createElement('div');
+    tempContainer.style.position = 'fixed';
+    tempContainer.style.left = '-9999px';
+    tempContainer.appendChild(allPagesContainer);
+    document.body.appendChild(tempContainer);
+    
+    const opt = {
+        margin: 0,
+        filename: 'document.pdf',
+        image: { type: 'jpeg', quality: 1 },
+        html2canvas: { 
+            scale: 2,
+            logging: true,
+            useCORS: true,
+            scrollX: 0,
+            scrollY: 0,
+            backgroundColor: '#FFFFFF'
+        },
+        jsPDF: { 
+            unit: 'mm', 
+            format: 'a4', 
+            orientation: 'portrait',
+            compress: true
+        }
+    };
+
+    // Generate PDF
+    html2pdf()
+        .set(opt)
+        .from(allPagesContainer)
+        .save()
+        .then(() => {
+            document.body.removeChild(tempContainer);
+        })
+        .catch(err => {
+            console.error('PDF generation error:', err);
+            document.body.removeChild(tempContainer);
+        });
+}
+
+// Print active task
+function printActiveTask() {
+    // Create a clone of the active task's container
+    const printContainer = document.createElement('div');
+    printContainer.style.position = 'fixed';
+    printContainer.style.left = '-9999px';
+    
+    // Clone all pages from active task
+    tasks[activeTaskIndex].forEach(page => {
+        const pageClone = page.cloneNode(true);
+        
+        // Remove page indicators from print
+        const indicators = pageClone.querySelectorAll('.page-indicator');
+        indicators.forEach(ind => ind.remove());
+        
+        // Ensure all elements are visible
+        const elements = pageClone.querySelectorAll('.draggable, .text-block, .img-container, .img-element');
+        elements.forEach(el => {
+            el.style.visibility = 'visible';
+            el.style.opacity = '1';
+        });
+        
+        printContainer.appendChild(pageClone);
+    });
+    
+    document.body.appendChild(printContainer);
+    
+    // Print and then remove the temporary container
+    window.print();
+    
+    setTimeout(() => {
+        document.body.removeChild(printContainer);
+    }, 1000);
+}
+
+// Modify window.print to only print active task
+window.print = function() {
+    const printWindow = window.open('', '_blank');
+    printWindow.document.open();
+    
+    // Get HTML of active task pages
+    let htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Print Document</title>
+            <style>
+                @page {
+                    size: A4;
+                    margin: 0;
+                }
+                body {
+                    margin: 0;
+                    padding: 0;
+                }
+                .print-page {
+                    width: 210mm;
+                    height: 297mm;
+                    page-break-after: always;
+                    position: relative;
+                    background: white;
+                }
+                .print-page:last-child {
+                    page-break-after: auto;
+                }
+            </style>
+        </head>
+        <body>
+    `;
+    
+    // Add all pages from active task
+    tasks[activeTaskIndex].forEach(page => {
+        const pageClone = page.cloneNode(true);
+        
+        // Remove page indicators
+        const indicators = pageClone.querySelectorAll('.page-indicator');
+        indicators.forEach(ind => ind.remove());
+        
+        // Ensure all elements are visible
+        const elements = pageClone.querySelectorAll('.draggable, .text-block, .img-container, .img-element');
+        elements.forEach(el => {
+            el.style.visibility = 'visible';
+            el.style.opacity = '1';
+        });
+        
+        htmlContent += `<div class="print-page">${pageClone.innerHTML}</div>`;
+    });
+    
+    htmlContent += `
+        </body>
+        </html>
+    `;
+    
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    
+    // Wait for content to load before printing
+    printWindow.onload = function() {
+        setTimeout(() => {
+            printWindow.print();
+            printWindow.close();
+        }, 500);
+    };
+};
+
+    // Funkcje do backupu i przywracania danych
+        function exportData() {
+            const data = localStorage.getItem('taskEditorData');
+            if (!data) {
+                alert('No data to export!');
+                return;
+            }
+            
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `task-editor-backup-${new Date().toISOString().slice(0,10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            alert('Backup downloaded successfully!');
+        }
+
+        function importData(input) {
+            const file = input.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (!data.tasks) throw new Error('Invalid backup file');
+                    
+                    if (confirm('Are you sure you want to restore backup? Current data will be overwritten!')) {
+                        localStorage.setItem('taskEditorData', JSON.stringify(data));
+                        loadFromLocalStorage();
+                        alert('Data restored successfully!');
+                    }
+                } catch (error) {
+                    alert('Error restoring backup: ' + error.message);
+                    console.error(error);
+                }
+                input.value = ''; // Reset input
+            };
+            reader.readAsText(file);
+        }
+
+        // Reszta istniejącego kodu pozostaje bez zmian
+   
+</script>
+</body>
+</html>
