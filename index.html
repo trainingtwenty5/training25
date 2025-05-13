@@ -230,15 +230,19 @@
       <input type="text" id="customText" placeholder="Custom Text" />
 
       <div class="task-management">
+	
         <h3>Task Management</h3>
         <div class="task-list" id="taskList"></div>
         <button class="task-btn" onclick="addNewTask()">Add New Task</button>
-        <button class="task-btn" onclick="duplicateCurrentTask()">Duplicate Task</button>
-        <button class="task-btn" onclick="removeCurrentTask()">Remove Task</button>
-        <button class="task-btn" onclick="exportData()">Download Backup</button>
-        <button class="task-btn" onclick="document.getElementById('fileInput').click()">Restore Backup</button>
+      
+        
+        
+       
+		<BR>
         <input type="file" id="fileInput" accept=".json" onchange="importData(this)" style="display: none;" />
-        <input type="password" id="taskPassword" placeholder="Password: xxx" />
+		<BR><BR><BR>
+        <input type="password" id="taskPassword" placeholder="Password: 123" />
+		<button class="task-btn" onclick="removeCurrentTask()">Remove Task <br>(add password: 123)</button>
       </div>
 
       <div class="page-management" id="pageManagement" style="display: none;">
@@ -249,9 +253,12 @@
         </div>
         <div class="page-list" id="pageList"></div>
       </div>
-
+	  
+	    <h3>Restore Management</h3>
+	   <button class="task-btn" onclick="document.getElementById('fileInput').click()">Restore Backup</button>
+ <h3>Download Management</h3>
       <button class="task-btn" onclick="downloadPDF()">Download as PDF</button>
-      <button class="task-btn" onclick="printActiveTask()">Print Active Task</button>
+	  <button class="task-btn" onclick="exportData()">Download Backup</button>
       <button class="task-btn" onclick="showCurrentJSON()">Show Current JSON</button>
 
     </div>
@@ -551,8 +558,8 @@
 
     function removeCurrentTask() {
       const password = document.getElementById('taskPassword').value;
-      if (password !== '12345') {
-        alert('Incorrect password. Use "12345"');
+      if (password !== '123') {
+        alert('Incorrect password. Use "123"');
         return;
       }
 
@@ -801,38 +808,9 @@
       updatePageList();
     }
 
-    function duplicateCurrentTask() {
-      if (!tasks[activeTaskIndex]) return;
-      const newTask = tasks[activeTaskIndex].map(page => {
-        const newPage = createNewPage(tasks.length, 0);
-        const elements = Array.from(page.querySelectorAll('.draggable, .text-block, .img-container'));
-        elements.forEach(el => {
-          const clone = el.cloneNode(true);
-          makeDraggable(clone);
-          newPage.appendChild(clone);
-        });
-        return newPage;
-      });
-      tasks.push(newTask);
-      updateTaskList();
-      switchTask(tasks.length - 1);
-      saveToLocalStorage();
-    }
 
-    function printActiveTask() {
-      const printWindow = window.open('', '_blank');
-      printWindow.document.open();
-      printWindow.document.write(`
-        <!DOCTYPE html>
-        <html><head><title>Print</title><style>@page{size:A4;margin:0;}body{margin:0;}</style></head><body>
-        ${tasks[activeTaskIndex]
-          .map(page => `<div style="width:210mm;height:297mm;">${page.innerHTML}</div>`)
-          .join('\n')}
-        </body></html>
-      `);
-      printWindow.document.close();
-      printWindow.print();
-    }
+
+
 
     function downloadPDF() {
       const opt = {
