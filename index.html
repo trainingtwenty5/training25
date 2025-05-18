@@ -311,7 +311,7 @@ input {
 
 <div id="main-container">
     <div id="sidebar">
-        <h2>Task Contents</h2>
+        <h2>Task Controls</h2>
         <button class="task-btn" onclick="addNumber()">Add Number</button>
         <input type="number" id="customNumber" placeholder="Custom Number" min="1" max="999">
         <button class="task-btn" onclick="addTextField()">Add Text Field</button>
@@ -321,11 +321,13 @@ input {
             <h3>Task Management</h3>
             <div class="task-list" id="taskList"></div>
             <button class="task-btn" onclick="addNewTask()">Add New Task</button>
-            
+            <button class="task-btn" onclick="duplicateCurrentTask()">Duplicate Task</button>
             <button class="task-btn" onclick="removeCurrentTask()">Remove Task</button>
-				<br><br>
-         
- 
+            <button class="task-btn backup-btn" onclick="exportData()">Download Backup</button>
+            <button class="task-btn restore-btn" onclick="document.getElementById('fileInput').click()">Restore Backup</button>
+            <input type="file" id="fileInput" accept=".json" onchange="importData(this)" style="display: none;">
+            <input type="file" id="pdfInput" accept=".pdf" onchange="handlePdfUpload(this)" style="display: none;">
+            <button class="task-btn" onclick="document.getElementById('pdfInput').click()">Import PDF</button>
             <input type="password" id="taskPassword" placeholder="Password: xxx">
         </div>
         
@@ -338,21 +340,9 @@ input {
             <div class="page-list" id="pageList"></div>
         </div>
         
-		<h3>Download Management</h3>
         <button class="task-btn" onclick="downloadPDF()">Download as PDF</button>
-       
+        <button class="task-btn" onclick="printActiveTask()">Print Active Task</button>
         <button class="task-btn" onclick="showCurrentJSON()">Show Current JSON</button>
-		
-		
-		      <h3>Page Backup</h3>
-		            <button class="task-btn backup-btn" onclick="exportData()">Download Backup</button>
-            <button class="task-btn restore-btn" onclick="document.getElementById('fileInput').click()">Restore Backup</button>
-			   <input type="file" 
-       id="fileInput" 
-       accept=".json" 
-       multiple 
-       onchange="importData(this)" 
-       style="display: none;">
     </div>
 
     <div id="editor-container">
@@ -934,7 +924,31 @@ function removeCurrentTask() {
     }
 }
 
-
+// Duplicate current task
+function duplicateCurrentTask() {
+    if (!tasks[activeTaskIndex]) return;
+    
+    const newTask = [];
+    
+    // Clone all pages from current task
+    tasks[activeTaskIndex].forEach(page => {
+        const newPage = createNewPage(tasks.length, newTask.length);
+        newTask.push(newPage);
+        
+        // Clone all elements from current page (except the page indicator)
+        const elements = page.querySelectorAll('.draggable, .text-block, .img-container');
+        elements.forEach(el => {
+            const clone = el.cloneNode(true);
+            makeDraggable(clone);
+            newPage.appendChild(clone);
+        });
+    });
+    
+    tasks.push(newTask);
+    updateTaskList();
+    switchTask(tasks.length - 1);
+    saveToLocalStorage();
+}
 
 // Download as PDF
 function downloadPDF() {
@@ -1042,7 +1056,110 @@ function downloadPDF() {
         });
 }
 
+// Print active task
+function printActiveTask() {
+    // Create a clone of the active task's container
+    const printContainer = document.createElement('div');
+    printContainer.style.position = 'fixed';
+    printContainer.style.left = '-9999px';
+    
+    // Clone all pages from active task
+    tasks[activeTaskIndex].forEach(page => {
+        const pageClone = page.cloneNode(true);
+        
+        // Remove page indicators from print
+        const indicators = pageClone.querySelectorAll('.page-indicator');
+        indicators.forEach(ind => ind.remove());
+        
+        // Ensure all elements are visible
+        const elements = pageClone.querySelectorAll('.draggable, .text-block, .img-container, .img-element');
+        elements.forEach(el => {
+            el.style.visibility = 'visible';
+            el.style.opacity = '1';
+        });
+        
+        printContainer.appendChild(pageClone);
+    });
+    
+    document.body.appendChild(printContainer);
+    
+    // Print and then remove the temporary container
+    window.print();
+    
+    setTimeout(() => {
+        document.body.removeChild(printContainer);
+    }, 1000);
+}
 
+// Modify window.print to only print active task
+window.print = function() {
+    const printWindow = window.open('', '_blank');
+    printWindow.document.open();
+    
+    // Get HTML of active task pages
+    let htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Print Document</title>
+            <style>
+                @page {
+                    size: A4;
+                    margin: 0;
+                }
+                body {
+                    margin: 0;
+                    padding: 0;
+                }
+                .print-page {
+                    width: 210mm;
+                    height: 297mm;
+                    page-break-after: always;
+                    position: relative;
+                    background: white;
+                }
+                .print-page:last-child {
+                    page-break-after: auto;
+                }
+            </style>
+        </head>
+        <body>
+    `;
+    
+    // Add all pages from active task
+    tasks[activeTaskIndex].forEach(page => {
+        const pageClone = page.cloneNode(true);
+        
+        // Remove page indicators
+        const indicators = pageClone.querySelectorAll('.page-indicator');
+        indicators.forEach(ind => ind.remove());
+        
+        // Ensure all elements are visible
+        const elements = pageClone.querySelectorAll('.draggable, .text-block, .img-container, .img-element');
+        elements.forEach(el => {
+            el.style.visibility = 'visible';
+            el.style.opacity = '1';
+        });
+        
+        htmlContent += `<div class="print-page">${pageClone.innerHTML}</div>`;
+    });
+    
+    htmlContent += `
+        </body>
+        </html>
+    `;
+    
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    
+    // Wait for content to load before printing
+    printWindow.onload = function() {
+        setTimeout(() => {
+            printWindow.print();
+            printWindow.close();
+        }, 500);
+    };
+};
 
 // Backup and restore functions
 function exportData() {
@@ -1066,100 +1183,28 @@ function exportData() {
 }
 
 function importData(input) {
-    const files = Array.from(input.files);
-    if (!files.length) return;
+    const file = input.files[0];
+    if (!file) return;
     
-    Promise.all(files.map(file => {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = e => {
-                try {
-                    const data = JSON.parse(e.target.result);
-                    if (!data.tasks || !Array.isArray(data.tasks)) {
-                        return reject(new Error(`${file.name}: zły format`));
-                    }
-                    resolve(data.tasks);
-                } catch (err) {
-                    reject(new Error(`${file.name}: ${err.message}`));
-                }
-            };
-            reader.onerror = () => reject(new Error(`${file.name}: błąd odczytu`));
-            reader.readAsText(file);
-        });
-    }))
-    .then(allTasksArrays => {
-        // allTasksArrays to tablica tablic tasks z każdego pliku
-        // spłaszczamy w jedną tablicę:
-        const mergedTasks = allTasksArrays.flat();
-        
-        // reset editor i tasks
-        tasks = [];
-        document.getElementById('editor').innerHTML = '';
-        
-        // odtwarzamy każdy task tak jak w loadFromLocalStorage/importData
-        mergedTasks.forEach((taskData, taskIndex) => {
-            const newTask = [];
-            taskData.forEach((pageData, pageIndex) => {
-                const newPage = createNewPage(taskIndex, pageIndex);
-                newTask.push(newPage);
-                pageData.forEach(elData => {
-                    let el;
-                    if (elData.type === 'number') {
-                        el = document.createElement('div');
-                        el.className = 'draggable';
-                        el.contentEditable = true;
-                        el.innerText = elData.content;
-                    } else if (elData.type === 'text') {
-                        el = document.createElement('div');
-                        el.className = 'text-block';
-                        el.contentEditable = true;
-                        el.innerText = elData.content;
-                        el.style.textAlign = elData.style.textAlign || 'justify';
-                    } else if (elData.type === 'image') {
-                        const c = document.createElement('div');
-                        c.className = 'img-container';
-                        const img = document.createElement('img');
-                        img.src = elData.content;
-                        img.className = 'img-element';
-                        if (elData.style.width)  img.style.width  = elData.style.width;
-                        if (elData.style.height) img.style.height = elData.style.height;
-                        c.appendChild(img);
-                        el = c;
-                    }
-                    // nałóż style pozycji i kolory
-                    Object.assign(el.style, {
-                        top:   elData.style.top   || '100px',
-                        left:  elData.style.left  || '100px',
-                        fontSize:       elData.style.fontSize,
-                        color:          elData.style.color,
-                        backgroundColor:elData.style.backgroundColor
-                    });
-                    makeDraggable(el);
-                    newPage.appendChild(el);
-                });
-            });
-            tasks.push(newTask);
-        });
-
-        // zresetuj indeksy i UI
-        activeTaskIndex = 0;
-        activePageIndex = 0;
-        switchTask(0);
-        updateTaskList();
-        updatePageManagement();
-        saveToLocalStorage();
-        alert(`Zaimportowano ${tasks.length} zadań z ${files.length} plików.`);
-    })
-    .catch(err => {
-        alert(`Błąd importu: ${err.message}`);
-        console.error(err);
-    })
-    .finally(() => {
-        input.value = ''; // reset wyboru plików
-    });
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = JSON.parse(e.target.result);
+            if (!data.tasks) throw new Error('Invalid backup file');
+            
+            if (confirm('Are you sure you want to restore backup? Current data will be overwritten!')) {
+                localStorage.setItem('taskEditorData', JSON.stringify(data));
+                loadFromLocalStorage();
+                alert('Data restored successfully!');
+            }
+        } catch (error) {
+            alert('Error restoring backup: ' + error.message);
+            console.error(error);
+        }
+        input.value = ''; // Reset input
+    };
+    reader.readAsText(file);
 }
-
-
 
 
 
@@ -1376,8 +1421,6 @@ function copyJSONToClipboard() {
         alert('Failed to copy JSON to clipboard.');
     });
 }
-
-
 </script>
 </body>
 </html>
